@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html,
+body {
+  overflow-x: hidden;
+  background: #000;
+}
+
+/* Mobile scroll-jack: each section snaps full viewport */
+@media (max-width: 767px) {
+  .scroll-jack {
+    height: 100vh;
+    overflow-y: scroll;
+    scroll-snap-type: y mandatory;
+    scroll-behavior: smooth;
+  }
+  .scroll-jack > section {
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    height: 100vh;
+  }
+}
