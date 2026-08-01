@@ -7,6 +7,10 @@ export const PALETTE = [
   { name: 'green', hex: '#10B981' },
   { name: 'pink', hex: '#F43F5E' },
   { name: 'yellow', hex: '#FACC15' },
+  { name: 'red', hex: '#EF4444' },
+  { name: 'teal', hex: '#14B8A6' },
+  { name: 'indigo', hex: '#6366F1' },
+  { name: 'lime', hex: '#84CC16' },
 ] as const;
 
 export default function ColorSwitcher({

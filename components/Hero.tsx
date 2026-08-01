@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ColorSwitcher, { PALETTE } from './ColorSwitcher';
 
@@ -9,6 +9,14 @@ export default function Hero() {
   const color = PALETTE[index].hex;
 
   const handleSwitch = () => setIndex((prev) => (prev + 1) % PALETTE.length);
+
+  // The status bar / browser chrome color is controlled by the theme-color
+  // meta tag, which is static by default. Without this, the top strip stays
+  // whatever color it was on first load regardless of what's tapped below.
+  useEffect(() => {
+    const meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', color);
+  }, [color]);
 
   return (
     <section
