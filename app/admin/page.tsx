@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { supabasePublic } from '@/lib/supabase';
 
 type Project = {
   id: string;
@@ -38,6 +39,22 @@ export default function AdminPage() {
 
   const showError = (text: string) => setBanner({ type: 'error', text });
   const showSuccess = (text: string) => setBanner({ type: 'success', text });
+
+  // Uploads go straight from the browser to Supabase Storage instead of
+  // through our API route. Routing large files through a Vercel serverless
+  // function hits its ~4.5MB body limit and fails with a generic "Load
+  // failed" - this was the actual bug behind the hero upload not working.
+  const uploadToStorage = async (file: File, prefix: string): Promise<string> => {
+    const supabase = supabasePublic();
+    const ext = file.name.split('.').pop();
+    const path = `${prefix}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('octopusfur-media')
+      .upload(path, file, { contentType: file.type, upsert: false });
+    if (error) throw new Error(error.message);
+    const { data } = supabase.storage.from('octopusfur-media').getPublicUrl(path);
+    return data.publicUrl;
+  };
 
   const loadProjects = async () => {
     setLoadingList(true);
@@ -95,14 +112,7 @@ export default function AdminPage() {
       // previously this required a separate "Upload" click, and skipping
       // it meant the old (or empty) URL got saved instead.
       if (heroFile) {
-        const fd = new FormData();
-        fd.append('file', heroFile);
-        const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-        const uploadData = await uploadRes.json();
-        if (!uploadRes.ok || uploadData.error) {
-          throw new Error(uploadData.error || 'Upload failed');
-        }
-        urlToSave = uploadData.url;
+        urlToSave = await uploadToStorage(heroFile, 'portfolio');
         setHeroImageUrl(urlToSave);
       }
 
@@ -153,12 +163,8 @@ export default function AdminPage() {
     setUploading(true);
     setBanner(null);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed');
-      setScreenshotUrl(data.url);
+      const url = await uploadToStorage(file, 'portfolio');
+      setScreenshotUrl(url);
     } catch (err: any) {
       showError(`Upload failed: ${err.message}`);
     } finally {

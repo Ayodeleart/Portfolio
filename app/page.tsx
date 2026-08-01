@@ -2,6 +2,8 @@ import Hero from '@/components/Hero';
 import About from '@/components/About';
 import Projects from '@/components/Projects';
 import Footer from '@/components/Footer';
+import Header from '@/components/Header';
+import { ColorProvider } from '@/lib/ColorContext';
 import { supabasePublic } from '@/lib/supabase';
 
 export const revalidate = 0;
@@ -15,11 +17,16 @@ export default async function Home() {
     .single();
 
   return (
-    <main className="scroll-jack">
-      <Hero heroImageUrl={settings?.hero_image_url} />
-      <About />
-      <Projects />
-      <Footer />
-    </main>
+    <ColorProvider>
+      <Header />
+      <main>
+        <Hero heroImageUrl={settings?.hero_image_url} />
+        <div className="relative z-10">
+          <About />
+          <Projects />
+          <Footer />
+        </div>
+      </main>
+    </ColorProvider>
   );
 }
