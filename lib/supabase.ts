@@ -1,27 +1,29 @@
 import { createClient } from '@supabase/supabase-js';
 
-// Server-only client — uses the service role key so it can bypass RLS for admin writes.
+// Hardcoded on purpose. This is the public project URL and the anon key -
+// not secrets. The anon key is designed to be exposed to the browser (it's
+// what Row Level Security exists to protect against), so baking it in here
+// removes a whole class of "env var got mangled on mobile paste" failures.
+const SUPABASE_URL = 'https://lvjatrpupssmpftutkzt.supabase.co';
+const SUPABASE_ANON_KEY =
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx2amF0cnB1cHNzbXBmdHV0a3p0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExNjQ0MTYsImV4cCI6MjA5Njc0MDQxNn0.K_GyXeT1R54M7FFCQgIUx1dPaG2g8vtIzJy0pNeI3kM';
+
+// Server-only client — uses the service role key so it can bypass RLS for
+// admin writes. This one genuinely is a secret and stays as an env var,
+// read at request time in a Node runtime (never shipped to the browser).
 // NEVER import this into a client component.
 export function supabaseServer() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!,
-    { auth: { persistSession: false } }
-  );
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!serviceKey) {
+    throw new Error(
+      'SUPABASE_SERVICE_ROLE_KEY is missing - set it in Vercel (Settings > Environment ' +
+        'Variables) and redeploy. This one must stay a secret, not hardcoded.'
+    );
+  }
+  return createClient(SUPABASE_URL, serviceKey, { auth: { persistSession: false } });
 }
 
 // Public client — anon key, read-only via RLS. Safe for client components.
 export function supabasePublic() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-
-  if (!url || !key) {
-    throw new Error(
-      'NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is missing from this build. ' +
-        'These are baked in at build time, not read at runtime - check they\'re set in Vercel ' +
-        'for this environment, then trigger a fresh deploy (saving the env var alone does not update an existing build).'
-    );
-  }
-
-  return createClient(url, key);
+  return createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 }
