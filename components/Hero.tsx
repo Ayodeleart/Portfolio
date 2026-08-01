@@ -23,6 +23,14 @@ export default function Hero({ heroImageUrl }: { heroImageUrl?: string | null })
       className="relative h-screen w-full overflow-hidden flex flex-col justify-between transition-colors duration-700"
       style={{ backgroundColor: color }}
     >
+      {/* Paints the safe-area/notch region from page content. iOS Safari
+          doesn't reliably repaint its native chrome from a live theme-color
+          mutation, so this covers that gap directly - and this is what
+          shows through when the PWA's status bar is translucent. */}
+      <div
+        className="fixed top-0 left-0 right-0 z-30 transition-colors duration-700"
+        style={{ height: 'env(safe-area-inset-top)', backgroundColor: color }}
+      />
       {/* top bar */}
       <div className="relative z-20 flex items-center justify-between px-6 md:px-12 pt-8">
         <span className="text-white tracking-[0.25em] text-sm font-medium">
@@ -50,31 +58,44 @@ export default function Hero({ heroImageUrl }: { heroImageUrl?: string | null })
         </AnimatePresence>
       </div>
 
-      {/* hero image placeholder - swap src once real composite is uploaded */}
+      {/* hero image - narrower so the giant wordmark stays visible on
+          either side, even on mobile. Full-bleed at 70% width was hiding
+          the wordmark completely on narrow screens. */}
       <div className="relative z-10 flex-1 flex items-end justify-center">
         <motion.div
           initial={{ y: 80, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-          className="relative w-[70%] max-w-2xl h-[75%]"
+          className="relative w-[50%] md:w-[38%] max-w-md h-[65%] md:h-[75%]"
         >
           {heroImageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={heroImageUrl}
-              alt="Octopus Fur"
-              className="w-full h-full object-cover rounded-t-3xl"
-            />
+            <>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={heroImageUrl}
+                alt="Octopus Fur"
+                className="w-full h-full object-cover rounded-t-3xl"
+              />
+              {/* color reflection onto the real photo */}
+              <div
+                className="absolute inset-0 mix-blend-color rounded-t-3xl transition-colors duration-700"
+                style={{ backgroundColor: color }}
+              />
+            </>
           ) : (
-            <div className="w-full h-full bg-neutral-500 rounded-t-3xl flex items-center justify-center text-white/70 text-sm">
-              hero composite goes here
+            // No photo yet - a soft colored light instead of a solid block,
+            // so it reads as a lighting effect rather than something hiding
+            // the wordmark. Switches fully with the palette.
+            <div className="relative w-full h-full flex items-center justify-center">
+              <div
+                className="absolute inset-0 rounded-full blur-[60px] mix-blend-screen transition-colors duration-700"
+                style={{ backgroundColor: color, opacity: 0.75 }}
+              />
+              <span className="relative text-white/60 text-xs md:text-sm text-center px-6">
+                hero composite goes here
+              </span>
             </div>
           )}
-          {/* color reflection overlay onto the hero image */}
-          <div
-            className="absolute inset-0 mix-blend-color rounded-t-3xl transition-colors duration-700"
-            style={{ backgroundColor: color }}
-          />
         </motion.div>
       </div>
 

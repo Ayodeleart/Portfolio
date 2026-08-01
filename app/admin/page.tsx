@@ -22,7 +22,6 @@ export default function AdminPage() {
   // hero image
   const [heroImageUrl, setHeroImageUrl] = useState('');
   const [heroFile, setHeroFile] = useState<File | null>(null);
-  const [heroUploading, setHeroUploading] = useState(false);
   const [heroSaving, setHeroSaving] = useState(false);
 
   // form state
@@ -86,38 +85,41 @@ export default function AdminPage() {
     loadSettings();
   }, []);
 
-  const uploadHeroImage = async () => {
-    if (!heroFile) return;
-    setHeroUploading(true);
-    setBanner(null);
-    try {
-      const fd = new FormData();
-      fd.append('file', heroFile);
-      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed');
-      setHeroImageUrl(data.url);
-    } catch (err: any) {
-      showError(`Hero image upload failed: ${err.message}`);
-    } finally {
-      setHeroUploading(false);
-    }
-  };
-
   const saveHeroImage = async () => {
     setHeroSaving(true);
     setBanner(null);
     try {
+      let urlToSave = heroImageUrl;
+
+      // If a new file was chosen, upload it first and use the fresh URL -
+      // previously this required a separate "Upload" click, and skipping
+      // it meant the old (or empty) URL got saved instead.
+      if (heroFile) {
+        const fd = new FormData();
+        fd.append('file', heroFile);
+        const uploadRes = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+        const uploadData = await uploadRes.json();
+        if (!uploadRes.ok || uploadData.error) {
+          throw new Error(uploadData.error || 'Upload failed');
+        }
+        urlToSave = uploadData.url;
+        setHeroImageUrl(urlToSave);
+      }
+
+      if (!urlToSave) throw new Error('Choose an image first');
+
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ hero_image_url: heroImageUrl }),
+        body: JSON.stringify({ hero_image_url: urlToSave }),
       });
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+
+      setHeroFile(null);
       showSuccess('Hero image saved — live on the site now.');
     } catch (err: any) {
-      showError(`Hero image save failed: ${err.message}`);
+      showError(`Hero image save failed: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setHeroSaving(false);
     }
@@ -246,28 +248,19 @@ export default function AdminPage() {
           This is the composite image shown on the homepage hero, behind the color reflection.
         </p>
         <div className="space-y-4">
-          <div className="flex items-center gap-3">
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setHeroFile(e.target.files?.[0] || null)}
-              className="text-sm"
-            />
-            <button
-              onClick={uploadHeroImage}
-              disabled={!heroFile || heroUploading}
-              className="bg-white/10 px-4 py-2 rounded-lg text-sm disabled:opacity-40"
-            >
-              {heroUploading ? 'Uploading…' : 'Upload'}
-            </button>
-          </div>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={(e) => setHeroFile(e.target.files?.[0] || null)}
+            className="text-sm"
+          />
           {heroImageUrl && (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img src={heroImageUrl} alt="hero preview" className="w-48 rounded-lg" />
           )}
           <button
             onClick={saveHeroImage}
-            disabled={heroSaving || !heroImageUrl}
+            disabled={heroSaving || (!heroFile && !heroImageUrl)}
             className="bg-oct-orange px-5 py-3 rounded-lg font-medium disabled:opacity-40"
           >
             {heroSaving ? 'Saving…' : 'Set as Hero Image'}
