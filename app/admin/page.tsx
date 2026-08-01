@@ -17,6 +17,7 @@ export default function AdminPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [links, setLinks] = useState<Record<string, string>>({});
   const [loadingList, setLoadingList] = useState(true);
+  const [banner, setBanner] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
   // form state
   const [title, setTitle] = useState('');
@@ -30,22 +31,36 @@ export default function AdminPage() {
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const showError = (text: string) => setBanner({ type: 'error', text });
+  const showSuccess = (text: string) => setBanner({ type: 'success', text });
+
   const loadProjects = async () => {
     setLoadingList(true);
-    const res = await fetch('/api/admin/projects');
-    const data = await res.json();
-    setProjects(data.projects || []);
-    setLoadingList(false);
+    try {
+      const res = await fetch('/api/admin/projects');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load projects');
+      setProjects(data.projects || []);
+    } catch (err: any) {
+      showError(err.message);
+    } finally {
+      setLoadingList(false);
+    }
   };
 
   const loadLinks = async () => {
-    const res = await fetch('/api/admin/social-links');
-    const data = await res.json();
-    const map: Record<string, string> = {};
-    (data.links || []).forEach((l: { platform: string; url: string }) => {
-      map[l.platform] = l.url;
-    });
-    setLinks(map);
+    try {
+      const res = await fetch('/api/admin/social-links');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load social links');
+      const map: Record<string, string> = {};
+      (data.links || []).forEach((l: { platform: string; url: string }) => {
+        map[l.platform] = l.url;
+      });
+      setLinks(map);
+    } catch (err: any) {
+      showError(err.message);
+    }
   };
 
   useEffect(() => {
@@ -55,6 +70,7 @@ export default function AdminPage() {
 
   const generate = async () => {
     setGenerating(true);
+    setBanner(null);
     try {
       const res = await fetch('/api/groq', {
         method: 'POST',
@@ -66,7 +82,10 @@ export default function AdminPage() {
         }),
       });
       const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'AI generation failed');
       setDescription(data.description || '');
+    } catch (err: any) {
+      showError(`AI write-up failed: ${err.message}`);
     } finally {
       setGenerating(false);
     }
@@ -75,12 +94,16 @@ export default function AdminPage() {
   const uploadFile = async () => {
     if (!file) return;
     setUploading(true);
+    setBanner(null);
     try {
       const fd = new FormData();
       fd.append('file', file);
       const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
       const data = await res.json();
-      if (data.url) setScreenshotUrl(data.url);
+      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed');
+      setScreenshotUrl(data.url);
+    } catch (err: any) {
+      showError(`Upload failed: ${err.message}`);
     } finally {
       setUploading(false);
     }
@@ -88,8 +111,9 @@ export default function AdminPage() {
 
   const saveProject = async () => {
     setSaving(true);
+    setBanner(null);
     try {
-      await fetch('/api/admin/projects', {
+      const res = await fetch('/api/admin/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -100,6 +124,9 @@ export default function AdminPage() {
           tech: tech.split(',').map((t) => t.trim()).filter(Boolean),
         }),
       });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+
       setTitle('');
       setLiveUrl('');
       setNotes('');
@@ -107,7 +134,10 @@ export default function AdminPage() {
       setDescription('');
       setScreenshotUrl('');
       setFile(null);
+      showSuccess('Project saved.');
       await loadProjects();
+    } catch (err: any) {
+      showError(`Save failed: ${err.message}. If you were logged out, refresh and log in again.`);
     } finally {
       setSaving(false);
     }
@@ -115,21 +145,45 @@ export default function AdminPage() {
 
   const deleteProject = async (id: string) => {
     if (!confirm('Delete this project?')) return;
-    await fetch(`/api/admin/projects/${id}`, { method: 'DELETE' });
-    await loadProjects();
+    try {
+      const res = await fetch(`/api/admin/projects/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Delete failed');
+      await loadProjects();
+    } catch (err: any) {
+      showError(`Delete failed: ${err.message}`);
+    }
   };
 
   const saveLinks = async () => {
-    await fetch('/api/admin/social-links', {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(links),
-    });
+    setBanner(null);
+    try {
+      const res = await fetch('/api/admin/social-links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(links),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+      showSuccess('Links saved.');
+    } catch (err: any) {
+      showError(`Save failed: ${err.message}`);
+    }
   };
 
   return (
     <main className="min-h-screen bg-black text-white px-6 py-12 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-display mb-8">Admin</h1>
+      <h1 className="text-3xl font-display mb-6">Admin</h1>
+
+      {banner && (
+        <div
+          className={`mb-6 px-4 py-3 rounded-lg text-sm ${
+            banner.type === 'error' ? 'bg-red-500/15 text-red-300 border border-red-500/40' : 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/40'
+          }`}
+        >
+          {banner.text}
+        </div>
+      )}
 
       <section>
         <h2 className="text-xl font-display mb-4">Add Project</h2>
@@ -224,10 +278,7 @@ export default function AdminPage() {
                   <p className="font-medium">{p.title}</p>
                   <p className="text-white/50 text-sm">{p.live_url}</p>
                 </div>
-                <button
-                  onClick={() => deleteProject(p.id)}
-                  className="text-oct-pink text-sm"
-                >
+                <button onClick={() => deleteProject(p.id)} className="text-oct-pink text-sm">
                   Delete
                 </button>
               </div>
@@ -248,10 +299,7 @@ export default function AdminPage() {
               className="w-full bg-white/5 border border-white/20 rounded-lg px-4 py-3"
             />
           ))}
-          <button
-            onClick={saveLinks}
-            className="bg-white text-black px-5 py-3 rounded-lg font-medium"
-          >
+          <button onClick={saveLinks} className="bg-white text-black px-5 py-3 rounded-lg font-medium">
             Save Links
           </button>
         </div>

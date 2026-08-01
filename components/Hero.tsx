@@ -51,8 +51,11 @@ export default function Hero() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-[70%] max-w-2xl h-[75%]"
         >
-          {/* Placeholder box - replace with <Image src="/hero.png" /> */}
-          <div className="w-full h-full bg-black/40 rounded-t-3xl flex items-center justify-center text-white/40 text-sm">
+          {/* Placeholder box - replace with <Image src="/hero.png" />.
+              Mid-gray so mix-blend-color previews accurately; a near-black
+              placeholder makes the blend look muddy regardless of the
+              active color, which isn't a switcher bug. */}
+          <div className="w-full h-full bg-neutral-500 rounded-t-3xl flex items-center justify-center text-white/70 text-sm">
             hero composite goes here
           </div>
           {/* color reflection overlay onto the hero image */}
