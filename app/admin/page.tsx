@@ -19,6 +19,12 @@ export default function AdminPage() {
   const [loadingList, setLoadingList] = useState(true);
   const [banner, setBanner] = useState<{ type: 'error' | 'success'; text: string } | null>(null);
 
+  // hero image
+  const [heroImageUrl, setHeroImageUrl] = useState('');
+  const [heroFile, setHeroFile] = useState<File | null>(null);
+  const [heroUploading, setHeroUploading] = useState(false);
+  const [heroSaving, setHeroSaving] = useState(false);
+
   // form state
   const [title, setTitle] = useState('');
   const [liveUrl, setLiveUrl] = useState('');
@@ -63,10 +69,59 @@ export default function AdminPage() {
     }
   };
 
+  const loadSettings = async () => {
+    try {
+      const res = await fetch('/api/admin/settings');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to load settings');
+      setHeroImageUrl(data.settings?.hero_image_url || '');
+    } catch (err: any) {
+      showError(err.message);
+    }
+  };
+
   useEffect(() => {
     loadProjects();
     loadLinks();
+    loadSettings();
   }, []);
+
+  const uploadHeroImage = async () => {
+    if (!heroFile) return;
+    setHeroUploading(true);
+    setBanner(null);
+    try {
+      const fd = new FormData();
+      fd.append('file', heroFile);
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Upload failed');
+      setHeroImageUrl(data.url);
+    } catch (err: any) {
+      showError(`Hero image upload failed: ${err.message}`);
+    } finally {
+      setHeroUploading(false);
+    }
+  };
+
+  const saveHeroImage = async () => {
+    setHeroSaving(true);
+    setBanner(null);
+    try {
+      const res = await fetch('/api/admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hero_image_url: heroImageUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+      showSuccess('Hero image saved — live on the site now.');
+    } catch (err: any) {
+      showError(`Hero image save failed: ${err.message}`);
+    } finally {
+      setHeroSaving(false);
+    }
+  };
 
   const generate = async () => {
     setGenerating(true);
@@ -186,6 +241,41 @@ export default function AdminPage() {
       )}
 
       <section>
+        <h2 className="text-xl font-display mb-4">Hero Image</h2>
+        <p className="text-white/50 text-sm mb-4">
+          This is the composite image shown on the homepage hero, behind the color reflection.
+        </p>
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => setHeroFile(e.target.files?.[0] || null)}
+              className="text-sm"
+            />
+            <button
+              onClick={uploadHeroImage}
+              disabled={!heroFile || heroUploading}
+              className="bg-white/10 px-4 py-2 rounded-lg text-sm disabled:opacity-40"
+            >
+              {heroUploading ? 'Uploading…' : 'Upload'}
+            </button>
+          </div>
+          {heroImageUrl && (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={heroImageUrl} alt="hero preview" className="w-48 rounded-lg" />
+          )}
+          <button
+            onClick={saveHeroImage}
+            disabled={heroSaving || !heroImageUrl}
+            className="bg-oct-orange px-5 py-3 rounded-lg font-medium disabled:opacity-40"
+          >
+            {heroSaving ? 'Saving…' : 'Set as Hero Image'}
+          </button>
+        </div>
+      </section>
+
+      <section className="mt-16">
         <h2 className="text-xl font-display mb-4">Add Project</h2>
         <div className="space-y-4">
           <input

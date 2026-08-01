@@ -14,6 +14,12 @@ body {
   background: #000;
 }
 
+.font-display {
+  font-family: 'Ruslan Display', serif;
+  font-weight: 400;
+  font-style: normal;
+}
+
 /* Mobile scroll-jack: each section snaps full viewport */
 @media (max-width: 767px) {
   .scroll-jack {

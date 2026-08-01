@@ -17,8 +17,7 @@ module.exports = {
         },
       },
       fontFamily: {
-        display: ['var(--font-display)', 'serif'],
-        body: ['var(--font-body)', 'sans-serif'],
+        body: ['system-ui', 'sans-serif'],
       },
     },
   },

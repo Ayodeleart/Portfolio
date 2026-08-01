@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ColorSwitcher, { PALETTE } from './ColorSwitcher';
 
-export default function Hero() {
+export default function Hero({ heroImageUrl }: { heroImageUrl?: string | null }) {
   const [index, setIndex] = useState(0);
   const color = PALETTE[index].hex;
 
@@ -43,8 +43,7 @@ export default function Hero() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.6, ease: 'easeOut' }}
-            className="text-white font-display font-bold leading-none select-none"
-            style={{ fontSize: 'min(28vw, 300px)' }}
+            className="font-display text-white leading-none select-none whitespace-nowrap text-[15vw] md:text-[9rem] lg:text-[11rem]"
           >
             OCTOPUS
           </motion.h1>
@@ -59,13 +58,18 @@ export default function Hero() {
           transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
           className="relative w-[70%] max-w-2xl h-[75%]"
         >
-          {/* Placeholder box - replace with <Image src="/hero.png" />.
-              Mid-gray so mix-blend-color previews accurately; a near-black
-              placeholder makes the blend look muddy regardless of the
-              active color, which isn't a switcher bug. */}
-          <div className="w-full h-full bg-neutral-500 rounded-t-3xl flex items-center justify-center text-white/70 text-sm">
-            hero composite goes here
-          </div>
+          {heroImageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={heroImageUrl}
+              alt="Octopus Fur"
+              className="w-full h-full object-cover rounded-t-3xl"
+            />
+          ) : (
+            <div className="w-full h-full bg-neutral-500 rounded-t-3xl flex items-center justify-center text-white/70 text-sm">
+              hero composite goes here
+            </div>
+          )}
           {/* color reflection overlay onto the hero image */}
           <div
             className="absolute inset-0 mix-blend-color rounded-t-3xl transition-colors duration-700"
