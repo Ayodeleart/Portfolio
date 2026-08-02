@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { supabasePublic } from '@/lib/supabase';
 
 type Project = {
@@ -251,7 +252,15 @@ export default function AdminPage() {
 
   return (
     <main className="min-h-screen bg-black text-white px-6 py-12 max-w-3xl mx-auto">
-      <h1 className="text-3xl font-display mb-6">Admin</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-display">Admin</h1>
+        <Link
+          href="/admin/ayodeleart"
+          className="text-sm text-white/70 hover:text-white border border-white/20 rounded-lg px-4 py-2"
+        >
+          Ayodeleart →
+        </Link>
+      </div>
 
       {banner && (
         <div

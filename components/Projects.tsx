@@ -8,6 +8,7 @@ export default async function Projects() {
   const { data: projects } = await supabase
     .from('portfolio_projects')
     .select('*')
+    .eq('site', 'dev')
     .order('sort_order', { ascending: true });
 
   return (

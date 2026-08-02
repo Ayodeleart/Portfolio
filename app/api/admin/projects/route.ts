@@ -8,6 +8,7 @@ export async function GET() {
   const { data, error } = await supabase
     .from('portfolio_projects')
     .select('*')
+    .eq('site', 'dev')
     .order('sort_order', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -31,6 +32,7 @@ export async function POST(req: NextRequest) {
       live_url,
       screenshot_url: screenshot_url || null,
       tech: tech || [],
+      site: 'dev',
     })
     .select()
     .single();
