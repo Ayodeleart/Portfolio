@@ -105,31 +105,46 @@ export default function AdminPage() {
   const saveHeroImage = async () => {
     setHeroSaving(true);
     setBanner(null);
-    try {
-      let urlToSave = heroImageUrl;
 
-      // If a new file was chosen, upload it first and use the fresh URL -
-      // previously this required a separate "Upload" click, and skipping
-      // it meant the old (or empty) URL got saved instead.
-      if (heroFile) {
+    let urlToSave = heroImageUrl;
+
+    if (heroFile) {
+      try {
         urlToSave = await uploadToStorage(heroFile, 'portfolio');
         setHeroImageUrl(urlToSave);
+      } catch (err: any) {
+        showError(`[upload step] ${err instanceof Error ? err.message : String(err)}`);
+        setHeroSaving(false);
+        return;
       }
+    }
 
-      if (!urlToSave) throw new Error('Choose an image first');
+    if (!urlToSave) {
+      showError('Choose an image first');
+      setHeroSaving(false);
+      return;
+    }
 
+    try {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ hero_image_url: urlToSave }),
       });
+
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        const text = await res.text();
+        throw new Error(`[save step] Server returned status ${res.status}, non-JSON body: ${text.slice(0, 200)}`);
+      }
+
       const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Save failed');
+      if (!res.ok || data.error) throw new Error(`[save step] ${data.error || `status ${res.status}`}`);
 
       setHeroFile(null);
       showSuccess('Hero image saved — live on the site now.');
     } catch (err: any) {
-      showError(`Hero image save failed: ${err instanceof Error ? err.message : String(err)}`);
+      showError(err instanceof Error ? err.message : String(err));
     } finally {
       setHeroSaving(false);
     }
