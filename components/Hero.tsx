@@ -36,24 +36,26 @@ export default function Hero({ heroImageUrl }: { heroImageUrl?: string | null })
           </h1>
         </motion.div>
 
-        {/* hero image / glow - narrower so wordmark stays visible on both
-            sides, even on mobile */}
-        <div className="relative z-10 flex-1 flex items-end justify-center pt-24">
+        {/* hero image / glow - no crop frame, photo keeps its natural
+            colors, the switcher color shows up as ambient light around it
+            instead of being painted over the image */}
+        <div className="relative z-10 flex-1 flex items-end justify-center pt-24 pb-4">
           <motion.div
             style={{ filter: blurFilter, scale }}
-            className="relative w-[50%] md:w-[38%] max-w-md h-[65%] md:h-[75%]"
+            className="relative w-[70%] md:w-[42%] max-w-lg h-[70%] md:h-[80%] flex items-end justify-center"
           >
             {heroImageUrl ? (
               <>
+                <div
+                  className="absolute inset-0 rounded-full blur-[90px] mix-blend-screen transition-colors duration-700"
+                  style={{ backgroundColor: color, opacity: 0.55 }}
+                />
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={heroImageUrl}
                   alt="Octopus Fur"
-                  className="w-full h-full object-cover rounded-t-3xl"
-                />
-                <div
-                  className="absolute inset-0 mix-blend-color rounded-t-3xl transition-colors duration-700"
-                  style={{ backgroundColor: color }}
+                  className="relative max-w-full max-h-full object-contain transition-[filter] duration-700"
+                  style={{ filter: `drop-shadow(0 0 45px ${color})` }}
                 />
               </>
             ) : (
