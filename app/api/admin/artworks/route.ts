@@ -6,9 +6,8 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
   const supabase = supabaseServer();
   const { data, error } = await supabase
-    .from('portfolio_projects')
-    .select('*, portfolio_project_images(id, url, sort_order)')
-    .eq('site', 'art')
+    .from('artworks')
+    .select('*, artwork_images(id, url, sort_order)')
     .order('sort_order', { ascending: true });
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
@@ -17,35 +16,52 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
-  const { title, description, story, category, year, dimensions, screenshot_url, images } = body;
+  const {
+    title,
+    story,
+    inspiration,
+    medium,
+    year,
+    dimensions,
+    featured,
+    frame_position,
+    images, // array of uploaded urls; images[0] becomes the cover
+  } = body;
 
-  if (!title || !screenshot_url) {
-    return NextResponse.json({ error: 'title and screenshot_url are required' }, { status: 400 });
+  const urls: string[] = Array.isArray(images) ? images : [];
+  if (!title || urls.length === 0) {
+    return NextResponse.json({ error: 'title and at least one image are required' }, { status: 400 });
   }
 
   const supabase = supabaseServer();
+
+  const { data: countRows } = await supabase.from('artworks').select('id');
+  const sort_order = countRows?.length ?? 0;
+
   const { data: artwork, error } = await supabase
-    .from('portfolio_projects')
+    .from('artworks')
     .insert({
       title,
-      description: description || '',
+      image_url: urls[0],
       story: story || null,
-      category: category || null,
+      inspiration: inspiration || null,
+      medium: medium || null,
       year: year ?? null,
       dimensions: dimensions || null,
-      screenshot_url,
-      site: 'art',
+      featured: !!featured,
+      frame_position: frame_position || null,
+      sort_order,
     })
     .select()
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const extraUrls: string[] = Array.isArray(images) ? images : [];
-  if (extraUrls.length > 0) {
-    const rows = extraUrls.map((url, i) => ({ project_id: artwork.id, url, sort_order: i }));
-    const { error: imagesError } = await supabase.from('portfolio_project_images').insert(rows);
-    if (imagesError) return NextResponse.json({ error: imagesError.message }, { status: 500 });
+  const extra = urls.slice(1);
+  if (extra.length > 0) {
+    const rows = extra.map((url, i) => ({ artwork_id: artwork.id, url, sort_order: i }));
+    const { error: imgErr } = await supabase.from('artwork_images').insert(rows);
+    if (imgErr) return NextResponse.json({ error: imgErr.message }, { status: 500 });
   }
 
   return NextResponse.json({ artwork });

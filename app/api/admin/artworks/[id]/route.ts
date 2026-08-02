@@ -8,10 +8,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const supabase = supabaseServer();
 
   const { data, error } = await supabase
-    .from('portfolio_projects')
+    .from('artworks')
     .update({ ...body, updated_at: new Date().toISOString() })
     .eq('id', params.id)
-    .eq('site', 'art')
     .select()
     .single();
 
@@ -21,13 +20,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
   const supabase = supabaseServer();
-  // portfolio_project_images rows cascade-delete via their FK, no manual cleanup needed.
-  const { error } = await supabase
-    .from('portfolio_projects')
-    .delete()
-    .eq('id', params.id)
-    .eq('site', 'art');
-
+  // artwork_images rows cascade-delete via their FK.
+  const { error } = await supabase.from('artworks').delete().eq('id', params.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }
